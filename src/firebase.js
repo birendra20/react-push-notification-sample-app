@@ -70,7 +70,13 @@ export default async function firebaseInitialize() {
     var notification = new Notification(notificationTitle, notificationOptions);
 
     notification.onclick = function (event) {
-      if (messageData.category === "call" || callType || sessionid) {
+      console.log("messageData.category", messageData.category);
+      if (
+        messageData.category === "call" ||
+        callType === "audio" ||
+        callType === "video" ||
+        sessionid
+      ) {
         window.open(
           `http://localhost:3000/chats?uid=${uid}&callType=${callType}&receiverType=${receiverType}&sessionid=${sessionid}`
         );

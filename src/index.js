@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 
 import "./index.css";
 import App from "./App";
@@ -30,7 +31,12 @@ import { CometChatCalls } from "@cometchat-pro/web-calls";
     firebaseInitialize();
 
     const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
+
+    root.render(
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    );
     askPermission();
   } catch (error) {
     console.log("Initialization failed with error:", error);

@@ -1,6 +1,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useNavigate,
+} from "react-router-dom";
 
 import "./App.css";
 import {
@@ -17,19 +23,24 @@ import { CometChatUIKitConstants } from "@cometchat/uikit-resources";
 
 import { getMessageUid } from "./firebase"; // Import the function from firebase.js
 import { CometChatCalls } from "@cometchat-pro/web-calls";
+import { useQueryParams } from "./Test";
 // import { OngoingCallDemo } from "./OngoingCallDemo";
 // import { OutgoingCallDemo } from "./OutgoingCallDemo";
 
 function App() {
-  let uid = new URL(window.location.href).searchParams.get("uid");
-  let callType = new URL(window.location.href).searchParams.get("callType");
-  let guid = new URL(window.location.href).searchParams.get("guid");
-  let sessionid = new URL(window.location.href).searchParams.get("sessionid");
-  let receiverType = new URL(window.location.href).searchParams.get(
-    "receiverType"
-  );
-  console.log("session on top", sessionid);
-
+  // let uid = new URL(window.location.href).searchParams.get("uid");
+  // let callType = new URL(window.location.href).searchParams.get("callType");
+  // let guid = new URL(window.location.href).searchParams.get("guid");
+  // let sessionid = new URL(window.location.href).searchParams.get("sessionid");
+  // let receiverType = new URL(window.location.href).searchParams.get(
+  //   "receiverType"
+  // );
+  // console.log("session on top", sessionid);
+  const queryParams = useQueryParams();
+  // console.log("first", uid, callType, guid, sessionid, receiverType);
+  // Extract specific query parameters from queryParams object
+  const { uid, callType, guid, sessionid, receiverType } = queryParams;
+  console.log(uid, callType, guid, sessionid, receiverType);
   const [user, setUser] = useState(null);
   const [chatWithUser, setChatWithUser] = useState(null);
   const [chatWithGroup, setChatWithGroup] = useState(null);
@@ -39,12 +50,19 @@ function App() {
   const [callObject, setCallObject] = useState(null);
   const [callObject2, setCallObject2] = useState(null);
   const [refreshed, setRefreshed] = useState(false);
+  const navigate = useNavigate();
 
   const myElementRef = useRef(null);
+  // Remove the query parameters from the URL.
 
-  var receiverID = "UID";
-  // var callType = CometChat.CALL_TYPE.AUDIO;
-  // var receiverType = CometChat.RECEIVER_TYPE.USER;
+  useEffect(() => {
+    if (window.location.href !== "http://localhost:3000/") {
+      navigate({
+        pathname: window.location.pathname,
+        search: "",
+      });
+    }
+  }, [navigate, chatWithUser, chatWithGroup]);
 
   useEffect(() => {
     if (uid && callType && receiverType) {
@@ -193,7 +211,7 @@ function App() {
     //     },
     //   })
     // );
-    return () => CometChatCalls.removeCallEventListener("UNIQUE_ID");
+    return () => CometChatCalls.removeCallEventListener(listnerID);
   }, []);
 
   const cancelCall = async () => {
@@ -262,6 +280,8 @@ function App() {
       CometChat.getGroup(guid)
         .then((group) => {
           if ("guid" in group) {
+            console.log("user<> qwertyuiop", group);
+
             setChatWithGroup(group);
           }
         })
@@ -273,7 +293,7 @@ function App() {
     if (uid && !guid) {
       CometChat.getUser(uid)
         .then((user) => {
-          console.log("user<>qwertyuiop", user);
+          console.log("user<> qwertyuiop", user);
           if ("uid" in user) {
             setChatWithUser(user);
           }
@@ -343,7 +363,9 @@ function App() {
           ) : (
             // <CometChatMessages user={chatWithUser} />
             <>
-              <CometChatMessages user={chatWithUser} key={uid} />
+              {chatWithUser && (
+                <CometChatMessages user={chatWithUser} key={uid} />
+              )}
               {callObject && (
                 <CometChatIncomingCall
                   call={callObject}
@@ -360,8 +382,8 @@ function App() {
             </>
           )}
           {/* <div ref={myElementRef} id='ELEMENT_ID'>
-            
-          </div> */}
+              
+            </div> */}
         </div>
       </>
     );
@@ -379,10 +401,10 @@ function App() {
               <CometChatConversationsWithMessages />
               {/* {callObject && <CometChatIncomingCall call={callObject} />} */}
               {/* <CometChatIncomingCall
-                call={callObject2}
-                onAccept={acceptCall}
-                onDecline={cancelCall}
-              /> */}
+                  call={callObject2}
+                  onAccept={acceptCall}
+                  onDecline={cancelCall}
+                /> */}
               {/* <OngoingCallDemo /> */}
               {/* <OutgoingCallDemo /> */}
             </>
@@ -396,15 +418,15 @@ function App() {
   }
   return (
     <>
-      <BrowserRouter>
-        <Routes>
-          <Route path='/'>
-            <Route path='/' element={getHome()}></Route>
-            <Route path='chats' element={getChatsModule()} />
-          </Route>
-          <Route path='*' element={<Navigate to='/' />} />
-        </Routes>
-      </BrowserRouter>
+      {/* <BrowserRouter> */}
+      <Routes>
+        <Route path='/'>
+          <Route path='/' element={getHome()}></Route>
+          <Route path='chats' element={getChatsModule()} />
+        </Route>
+        <Route path='*' element={<Navigate to='/' />} />
+      </Routes>
+      {/* </BrowserRouter> */}
     </>
   );
 }

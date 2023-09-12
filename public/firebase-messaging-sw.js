@@ -83,7 +83,12 @@ if (messaging) {
         console.log("clicked??????????????????/", event);
         event.notification.close(); // Close the notification
 
-        if (messageData.category === "call" || callType || sessionid) {
+        if (
+          messageData.category === "call" ||
+          callType === "audio" ||
+          callType === "video" ||
+          sessionid
+        ) {
           console.log("calls>>>>>>>>>>>>>>");
 
           event.waitUntil(
