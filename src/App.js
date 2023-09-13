@@ -1,7 +1,4 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-unused-vars */
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
-
 import "./App.css";
 import {
   CometChatConversationsWithMessages,
@@ -12,23 +9,12 @@ import Login from "./login/Login";
 import { CometChat } from "@cometchat/chat-sdk-javascript";
 import { CometChatIncomingCall } from "@cometchat/chat-uikit-react";
 import { CometChatMessages } from "@cometchat/chat-uikit-react";
-import { CometChatUIKitConstants } from "@cometchat/uikit-resources";
 
-import { CometChatCalls } from "@cometchat-pro/web-calls";
+import { CometChatCalls } from "@cometchat/calls-sdk-javascript";
 import { useQueryParams } from "./Test";
-// import { OngoingCallDemo } from "./OngoingCallDemo";
-// import { OutgoingCallDemo } from "./OutgoingCallDemo";
 
 function App() {
-  // let uid = new URL(window.location.href).searchParams.get("uid");
-  // let callType = new URL(window.location.href).searchParams.get("callType");
-  // let guid = new URL(window.location.href).searchParams.get("guid");
-  // let sessionid = new URL(window.location.href).searchParams.get("sessionid");
-  // let receiverType = new URL(window.location.href).searchParams.get(
-  //   "receiverType"
-  // );
   const queryParams = useQueryParams();
-  // Extract specific query parameters from queryParams object
   let { uid, callType, guid, sessionid, receiverType } = queryParams;
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [chatWithUser, setChatWithUser] = useState(null);
@@ -39,7 +25,7 @@ function App() {
   const navigate = useNavigate();
   const myElementRef = useRef(null);
   const refCount = useRef(0);
-  let isCallEnded = false;
+  // let isCallEnded = false;
 
   useEffect(() => {
     if (uid && callType && receiverType) {
@@ -65,7 +51,7 @@ function App() {
           CurrentSessionId,
           authToken
         );
-        let isAudioOnly = callType === "audio";
+        let isAudioOnly = callType === "audio" || call.type === "audio";
         const callSettings = new CometChatCalls.CallSettingsBuilder()
           .enableDefaultLayout(true)
           .setIsAudioOnlyCall(isAudioOnly)
@@ -76,18 +62,24 @@ function App() {
               },
 
               onCallEndButtonPressed: () => {
-                isCallEnded = true;
-                console.log("clicked", isCallEnded);
                 CometChatCalls.endSession();
+                CometChat.endCall();
+                if (window.location.href !== "/") {
+                  navigate({
+                    pathname: "/",
+                  });
+                }
               },
               onCallEnded: () => {
                 console.log("Call ended");
-                if (isCallEnded) {
-                  console.log("clilcked in on");
-                  CometChat.endCall();
-                } else {
-                  isCallEnded = false;
-                  CometChatCalls.endSession();
+                // if (isCallEnded) {
+                console.log("clilcked in on");
+                CometChatCalls.endSession();
+                CometChat.endCall();
+                if (window.location.href !== "http://localhost:3000/") {
+                  navigate({
+                    pathname: "/",
+                  });
                 }
               },
 
@@ -124,12 +116,6 @@ function App() {
                 console.log("event => onUserJoined", user),
               onUserLeft: (user) => {
                 console.log("event => onUserLeft", user);
-                // console.log(loggedInUser);
-                // if (user.uid === loggedInUser.uid) {
-                //   navigate({
-                //     pathname: "/",
-                //   });
-                // }
               },
             })
           )
@@ -159,6 +145,7 @@ function App() {
         onIncomingCallReceived: (call) => {
           console.log("Incoming call:", call);
           setHomeSessionId(call.sessionId);
+          // setHomeCallType(call.type);
           setCallObject(call);
         },
         onOutgoingCallAccepted: (call) => {
@@ -182,7 +169,7 @@ function App() {
       CometChatCalls.removeCallEventListener(sessionid);
       refCount.current = 0;
     };
-  }, []);
+  }, [sessionid]);
   const cancelCall = async (sessionid) => {
     // setCallObject(undefined);
     console.log("rejected?????????????????????????????????????????");
@@ -256,7 +243,12 @@ function App() {
   function getChatsModule() {
     return (
       <>
-        <div style={{ height: "100vh" }} ref={myElementRef} id='ELEMENT_ID'>
+        <div
+          style={{ height: "100vh" }}
+          ref={myElementRef}
+          id='ELEMENT_ID'
+          key='chatPage'
+        >
           {chatWithGroup ? (
             <>
               <CometChatMessages group={chatWithGroup} key={guid} />
@@ -281,7 +273,7 @@ function App() {
                     IncrementCount();
 
                     if (refCount.current > 2) {
-                      cancelCall();
+                      cancelCall(sessionid);
                     }
                   }}
                 />
@@ -301,6 +293,7 @@ function App() {
           style={{ height: "100vh" }}
           ref={myElementRef}
           id='ELEMENT_ID'
+          key='homePage'
         >
           {loggedInUser ? (
             <>
@@ -308,8 +301,7 @@ function App() {
                 Logout
               </button>
 
-              <CometChatConversationsWithMessages />
-              {/* {callObject && <CometChatIncomingCall call={callObject} />} */}
+              <CometChatConversationsWithMessages key='homePageCometChatConversationsWithMessages' />
               {callObject && (
                 <CometChatIncomingCall
                   call={callObject}
@@ -320,7 +312,6 @@ function App() {
           ) : (
             <Login setLoggedInUser={setLoggedInUser} />
           )}
-          {/* <CometChatUsersWithMessages /> */}
         </div>
       </>
     );

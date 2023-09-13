@@ -9,7 +9,7 @@ import { defaultUserBtnsContainerStyle } from "./style";
 export default function Login(props) {
   const [phone, setPhone] = useState("");
 
-  const setUser = props.setUser;
+  const setUser = props.setLoggedInUser;
   console.log("props", props);
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -19,14 +19,10 @@ export default function Login(props) {
 
     CometChatUIKit.login(UID, authKey).then(
       (User) => {
-        // console.log("Login Successful:", { User });
-        // // User loged in successfully.
-        // console.log(User.uid);
         setUser(User);
       },
       (error) => {
         console.log("Login failed with exception:", { error });
-        // User login failed, check error and take appropriate action.
       }
     );
   };

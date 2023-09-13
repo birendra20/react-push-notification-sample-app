@@ -9,7 +9,7 @@ import { UIKitSettingsBuilder } from "@cometchat/uikit-shared";
 import { CometChatConstants } from "./const";
 import { CometChatUIKit } from "@cometchat/chat-uikit-react";
 import firebaseInitialize from "./firebase";
-import { CometChatCalls } from "@cometchat-pro/web-calls";
+import { CometChatCalls } from "@cometchat/calls-sdk-javascript";
 
 (async () => {
   const uiKitSettings = new UIKitSettingsBuilder()
@@ -51,15 +51,6 @@ if ("serviceWorker" in navigator) {
     .then(function (registration) {
       console.log("registration", registration);
       console.log("Registration succlgcessful, scope is:", registration.scope);
-      // navigator.serviceWorker.addEventListener("message", (event) => {
-      //   // Handle the message (payload) received from the service worker
-      //   const payload = event.data;
-
-      //   let temporData = JSON.parse(payload.data.message);
-      //   console.log("Received message from service worker:", temporData);
-
-      //   // You can now use the payload data in your React component
-      // });
     })
     .catch((error) => console.log("Registration error", error));
 }
@@ -75,7 +66,8 @@ async function askPermission() {
     }
   }).then(function (permissionResult) {
     if (permissionResult !== "granted") {
-      throw new Error("We weren't granted permission.");
+      // throw new Error("We weren't granted permission.");
+      console.log("permission not granted");
     }
   });
 }
