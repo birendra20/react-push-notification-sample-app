@@ -1,17 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
-import {
-  BrowserRouter,
-  Navigate,
-  Route,
-  Routes,
-  useNavigate,
-} from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 import "./App.css";
 import {
   CometChatConversationsWithMessages,
-  CometChatOngoingCall,
   CometChatUIKit,
 } from "@cometchat/chat-uikit-react";
 import { useEffect, useRef, useState } from "react";
@@ -21,7 +14,6 @@ import { CometChatIncomingCall } from "@cometchat/chat-uikit-react";
 import { CometChatMessages } from "@cometchat/chat-uikit-react";
 import { CometChatUIKitConstants } from "@cometchat/uikit-resources";
 
-import { getMessageUid } from "./firebase"; // Import the function from firebase.js
 import { CometChatCalls } from "@cometchat-pro/web-calls";
 import { useQueryParams } from "./Test";
 // import { OngoingCallDemo } from "./OngoingCallDemo";
@@ -35,65 +27,44 @@ function App() {
   // let receiverType = new URL(window.location.href).searchParams.get(
   //   "receiverType"
   // );
-  // console.log("session on top", sessionid);
   const queryParams = useQueryParams();
-  // console.log("first", uid, callType, guid, sessionid, receiverType);
   // Extract specific query parameters from queryParams object
-  const { uid, callType, guid, sessionid, receiverType } = queryParams;
-  console.log(uid, callType, guid, sessionid, receiverType);
-  const [user, setUser] = useState(null);
+  let { uid, callType, guid, sessionid, receiverType } = queryParams;
+  const [loggedInUser, setLoggedInUser] = useState(null);
   const [chatWithUser, setChatWithUser] = useState(null);
   const [chatWithGroup, setChatWithGroup] = useState(null);
-  const [getSessionId, setSessionId] = useState();
-  // const [getUid, setUid] = useState(uid);
-  // const [getGuid, setGuid] = useState(guid);
+
   const [callObject, setCallObject] = useState(null);
-  const [callObject2, setCallObject2] = useState(null);
-  const [refreshed, setRefreshed] = useState(false);
+  const [homeSessionId, setHomeSessionId] = useState(null);
   const navigate = useNavigate();
-
   const myElementRef = useRef(null);
-  // Remove the query parameters from the URL.
-
-  useEffect(() => {
-    if (window.location.href !== "http://localhost:3000/") {
-      navigate({
-        pathname: window.location.pathname,
-        search: "",
-      });
-    }
-  }, [navigate, chatWithUser, chatWithGroup]);
+  const refCount = useRef(0);
+  let isCallEnded = false;
 
   useEffect(() => {
     if (uid && callType && receiverType) {
       var call = new CometChat.Call(uid, callType, receiverType);
-      console.log("calling", call);
       if (call) {
         setCallObject(call);
       }
     }
 
-    // return () => {
-    //   setCallObject(null);
-    // };
+    return () => {
+      setCallObject(null);
+    };
   }, [uid, callType, receiverType]);
 
-  const acceptCall = async () => {
-    console.log("triggerd?????");
+  const acceptCall = async (sessionid) => {
     await CometChat.acceptCall(sessionid).then(
       async (call) => {
-        // setCallObject(undefined);
-        setCallObject2(call);
+        setCallObject(null);
         console.log("Call accepted successfully:", call);
-        var sessionId = call.sessionId;
-        console.log("sessionId in start  call", sessionId);
-        const authToken = await user.getAuthToken();
-        console.log("authToken", authToken);
+        let CurrentSessionId = call.sessionId;
+        const authToken = await loggedInUser.getAuthToken();
         let callToken = await CometChatCalls.generateToken(
-          sessionid,
+          CurrentSessionId,
           authToken
         );
-        console.log("callToken", callToken);
         let isAudioOnly = callType === "audio";
         const callSettings = new CometChatCalls.CallSettingsBuilder()
           .enableDefaultLayout(true)
@@ -103,9 +74,23 @@ function App() {
               onUserListUpdated: (userList) => {
                 console.log("user list:", userList);
               },
+
+              onCallEndButtonPressed: () => {
+                isCallEnded = true;
+                console.log("clicked", isCallEnded);
+                CometChatCalls.endSession();
+              },
               onCallEnded: () => {
                 console.log("Call ended");
+                if (isCallEnded) {
+                  console.log("clilcked in on");
+                  CometChat.endCall();
+                } else {
+                  isCallEnded = false;
+                  CometChatCalls.endSession();
+                }
               },
+
               onError: (error) => {
                 console.log("Error :", error);
               },
@@ -137,7 +122,15 @@ function App() {
               },
               onUserJoined: (user) =>
                 console.log("event => onUserJoined", user),
-              onUserLeft: (user) => console.log("event => onUserLeft", user),
+              onUserLeft: (user) => {
+                console.log("event => onUserLeft", user);
+                // console.log(loggedInUser);
+                // if (user.uid === loggedInUser.uid) {
+                //   navigate({
+                //     pathname: "/",
+                //   });
+                // }
+              },
             })
           )
           .build();
@@ -146,7 +139,6 @@ function App() {
         CometChatCalls.startSession(callToken.token, callSettings, htmlElement)
           .then((response) => {
             console.log("call session success", response);
-            setCallObject(undefined);
           })
           .catch((error) => {
             console.log("call session failure", error);
@@ -161,66 +153,43 @@ function App() {
   useEffect(() => {
     var listnerID = "UNIQUE_LISTENER_ID";
 
-    CometChatCalls.addCallEventListener(listnerID, {
-      onUserJoined: (user) => {
-        console.log("user joined:", user);
-      },
-      onUserLeft: (user) => {
-        console.log("user left:", user);
-      },
-      onUserListUpdated: (userList) => {
-        console.log("user list:", userList);
-      },
-      onCallEnded: () => {
-        console.log("Call ended");
-      },
-      onCallEndButtonPressed: () => {
-        console.log("End Call button pressed");
-      },
-      onError: (error) => {
-        console.log("Call Error: ", error);
-      },
-      onAudioModesUpdated: (audioModes) => {
-        console.log("audio modes:", audioModes);
-      },
-      onUserMuted: (event) => {
-        console.log("user muted:", event);
-      },
-    });
+    CometChat.addCallListener(
+      listnerID,
+      new CometChat.CallListener({
+        onIncomingCallReceived: (call) => {
+          console.log("Incoming call:", call);
+          setHomeSessionId(call.sessionId);
+          setCallObject(call);
+        },
+        onOutgoingCallAccepted: (call) => {
+          console.log("Outgoing call accepted:", call);
+        },
+        onOutgoingCallRejected: (call) => {
+          console.log("Outgoing call rejected:", call);
+        },
+        onIncomingCallCancelled: (call) => {
+          console.log("Incoming call calcelled:", call);
+        },
+        onCallEndedMessageReceived: (call) => {
+          console.log("CallEnded Message:", call);
+        },
+      })
+    );
 
-    // CometChat.addCallListener(
-    //   listnerID,
-    //   new CometChat.CallListener({
-    //     onIncomingCallReceived: (call) => {
-    //       console.log("Incoming call:", call);
-    //       setCallObject(call);
-
-    //       setSessionId(call.getSessionId());
-    //     },
-    //     onOutgoingCallAccepted: (call) => {
-    //       console.log("Outgoing call accepted:", call);
-    //     },
-    //     onOutgoingCallRejected: (call) => {
-    //       console.log("Outgoing call rejected:", call);
-    //     },
-    //     onIncomingCallCancelled: (call) => {
-    //       console.log("Incoming call calcelled:", call);
-    //     },
-    //     onCallEndedMessageReceived: (call) => {
-    //       console.log("CallEnded Message:", call);
-    //     },
-    //   })
-    // );
-    return () => CometChatCalls.removeCallEventListener(listnerID);
+    return () => {
+      CometChat.endCall();
+      CometChat.removeCallListener(sessionid);
+      CometChatCalls.removeCallEventListener(sessionid);
+      refCount.current = 0;
+    };
   }, []);
-
-  const cancelCall = async () => {
-    setCallObject(undefined);
+  const cancelCall = async (sessionid) => {
+    // setCallObject(undefined);
     console.log("rejected?????????????????????????????????????????");
     var status = CometChat.CALL_STATUS.REJECTED;
     setCallObject(undefined);
 
-    CometChat.rejectCall(sessionid).then(
+    CometChat.rejectCall(sessionid, status).then(
       (call) => {
         console.log("Call rejected successfully", call);
       },
@@ -229,59 +198,12 @@ function App() {
       }
     );
   };
-  // const cancelCall = () => setCall(undefined);
-  // useEffect(() => {
-  //   console.log("triggering???????");
-  //   const broadcastChannel = new BroadcastChannel("myChannel");
 
-  //   broadcastChannel.onmessage = (event) => {
-  //     console.log("triggering2???????");
-
-  //     // Handle messages received from the service worker
-  //     console.log("broadcastChannel", event);
-  //     const tempData = event.data;
-  //     console.log("Received message from service worker:", tempData);
-
-  //     // Access the uid and guid data as needed
-  //     const receivedUid = tempData.uid;
-  //     const receivedGuid = tempData.guid;
-
-  //     const messageData = tempData.messageData;
-  //     setCallObject(messageData);
-  //     console.log("receivedUid", receivedUid);
-  //     console.log("receivedGuid", receivedGuid);
-  //     console.log("messageData in ", messageData);
-  //     // console.log("receivedGuid", receivedGuid);
-  //     // Update state with the received data
-  //   };
-
-  //   // Cleanup the event listener when the component unmounts
-  //   return () => {
-  //     broadcastChannel.close();
-  //   };
-  // }, []);
-
-  // useEffect(() => {
-  //   navigator.serviceWorker.addEventListener("notificationclick", (event) => {
-  //     console.log("after clicked>>??");
-  //     // Retrieve the associated messageData from the clicked notification
-  //     const messageData = JSON.parse(event.notification.data);
-  //     // Handle the messageData as needed
-  //     console.log("Received messageData:", messageData);
-  //     // setCallObject(messageData);
-
-  //     // Now you can work with the messageData in your React component
-  //   });
-  // }, []);
-  // console.log("UID<><>>>>>>>>>>>>>", getUid);
   useEffect(() => {
     if (guid && !uid) {
-      // console.log("currentOpenChat group", getUid);
       CometChat.getGroup(guid)
         .then((group) => {
           if ("guid" in group) {
-            console.log("user<> qwertyuiop", group);
-
             setChatWithGroup(group);
           }
         })
@@ -293,7 +215,6 @@ function App() {
     if (uid && !guid) {
       CometChat.getUser(uid)
         .then((user) => {
-          console.log("user<> qwertyuiop", user);
           if ("uid" in user) {
             setChatWithUser(user);
           }
@@ -302,30 +223,24 @@ function App() {
           console.log("user does not exit", user);
         });
     }
-
-    // // Cleanup function
-    // return () => {
-    //   // setUid(null);
-    //   // setGuid(null);
-    // };
   }, [guid, uid]);
 
   useEffect(() => {
     (async () => {
       try {
-        setUser(await CometChat.getLoggedinUser());
+        setLoggedInUser(await CometChat.getLoggedinUser());
       } catch (error) {
         console.log(error);
       }
     })();
-  }, [setUser]);
+  }, []);
 
   const logout = () => {
     CometChatUIKit.logout().then(
       () => {
         //Logout completed successfully
         console.log("Logout completed successfully");
-        setUser(null);
+        setLoggedInUser(null);
       },
       (error) => {
         //Logout failed with exception
@@ -334,14 +249,10 @@ function App() {
     );
   };
 
-  const onDecline = () => {
-    console.log("first", refreshed);
-    setRefreshed(true);
-    if (refreshed) {
-      console.log("sls");
-      cancelCall();
-    }
-  };
+  function IncrementCount() {
+    refCount.current = refCount.current + 1;
+  }
+
   function getChatsModule() {
     return (
       <>
@@ -354,14 +265,10 @@ function App() {
                 <CometChatIncomingCall
                   call={callObject}
                   onAccept={() => acceptCall(sessionid)}
-                  // onDecline={cancelCall}
-                  // onDecline={() => cancelCall(sessionid)}
-                  // onError={callObject}
                 />
               )}
             </>
           ) : (
-            // <CometChatMessages user={chatWithUser} />
             <>
               {chatWithUser && (
                 <CometChatMessages user={chatWithUser} key={uid} />
@@ -370,29 +277,32 @@ function App() {
                 <CometChatIncomingCall
                   call={callObject}
                   onAccept={() => acceptCall(sessionid)}
-                  // onDecline={onDecline}
-                  onClick={cancelCall}
-                  // onDecline={() => cancelCall(sessionid)}
-                  // onError={callObject}
+                  onDecline={(e) => {
+                    IncrementCount();
+
+                    if (refCount.current > 2) {
+                      cancelCall();
+                    }
+                  }}
                 />
               )}
-              {/* {callObject2 && <CometChatOngoingCall sessionID={sessionid} />} */}
-
-              {/* <OngoingCallDemo /> */}
             </>
           )}
-          {/* <div ref={myElementRef} id='ELEMENT_ID'>
-              
-            </div> */}
         </div>
       </>
     );
   }
+
   function getHome() {
     return (
       <>
-        <div className='App' style={{ height: "100vh" }}>
-          {user ? (
+        <div
+          className='App'
+          style={{ height: "100vh" }}
+          ref={myElementRef}
+          id='ELEMENT_ID'
+        >
+          {loggedInUser ? (
             <>
               <button colorScheme='red' onClick={() => logout()}>
                 Logout
@@ -400,16 +310,15 @@ function App() {
 
               <CometChatConversationsWithMessages />
               {/* {callObject && <CometChatIncomingCall call={callObject} />} */}
-              {/* <CometChatIncomingCall
-                  call={callObject2}
-                  onAccept={acceptCall}
-                  onDecline={cancelCall}
-                /> */}
-              {/* <OngoingCallDemo /> */}
-              {/* <OutgoingCallDemo /> */}
+              {callObject && (
+                <CometChatIncomingCall
+                  call={callObject}
+                  onAccept={() => acceptCall(homeSessionId)}
+                />
+              )}
             </>
           ) : (
-            <Login setUser={setUser} />
+            <Login setLoggedInUser={setLoggedInUser} />
           )}
           {/* <CometChatUsersWithMessages /> */}
         </div>
@@ -418,7 +327,6 @@ function App() {
   }
   return (
     <>
-      {/* <BrowserRouter> */}
       <Routes>
         <Route path='/'>
           <Route path='/' element={getHome()}></Route>
@@ -426,7 +334,6 @@ function App() {
         </Route>
         <Route path='*' element={<Navigate to='/' />} />
       </Routes>
-      {/* </BrowserRouter> */}
     </>
   );
 }

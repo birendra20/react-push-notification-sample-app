@@ -33,7 +33,6 @@ firebase.initializeApp(self.firebaseConfig || defaultConfig);
 let messaging;
 try {
   messaging = firebase.messaging();
-  console.log("messaging>>>>>>>>>>>>>>>>>>", messaging);
 } catch (err) {
   console.error("Failed to initialize Firebase Messaging", err);
 }
@@ -70,6 +69,7 @@ if (messaging) {
             action: "reply",
             type: "text",
             title: "Reply",
+            icon: myIcon,
           },
         ],
       };
@@ -89,15 +89,12 @@ if (messaging) {
           callType === "video" ||
           sessionid
         ) {
-          console.log("calls>>>>>>>>>>>>>>");
-
           event.waitUntil(
             clients.openWindow(
               `http://localhost:3000/chats?uid=${uid}&callType=${callType}&receiverType=${receiverType}&sessionid=${sessionid}`
             )
           );
         } else {
-          console.log("chats>>>>>>>>>>>>>>>", guid);
           if (guid) {
             event.waitUntil(
               clients.openWindow(`http://localhost:3000/chats?guid=${guid}`)

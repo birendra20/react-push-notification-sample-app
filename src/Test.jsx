@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 
 export function useQueryParams() {
   const [queryParams, setQueryParams] = useState({});
-
   useEffect(() => {
     const searchParams = new URL(window.location.href).searchParams;
     const params = {};
@@ -16,6 +15,7 @@ export function useQueryParams() {
         window.location.search,
         ""
       );
+
       window.history.replaceState({}, document.title, urlWithoutQueryParams);
     }
 
